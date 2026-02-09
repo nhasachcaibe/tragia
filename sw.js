@@ -1,4 +1,4 @@
-const CACHE = "tra-gia-v2";
+const CACHE = "tra-gia-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -26,7 +26,6 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // CDN: try network, fallback cache
   e.respondWith(
     fetch(e.request).then(resp => {
       const copy = resp.clone();
