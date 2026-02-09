@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
+  <title>Tra Giá Bằng Ảnh</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#f6f7f9;color:#111}
+    header{padding:14px 14px 10px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0}
+    h1{font-size:16px;margin:0}
+    main{padding:14px;max-width:860px;margin:0 auto}
+    .tabs{display:flex;gap:8px;margin-top:10px}
+    .tab{flex:1;padding:10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;font-weight:700}
+    .tab.active{border-color:#111}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0}
+    label{display:block;font-size:13px;margin:10px 0 6px}
+    input,button{font:inherit}
+    input[type="text"],input[type="number"]{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px}
+    input[type="file"]{width:100%}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .row > *{flex:1;min-width:160px}
+    button{padding:11px 12px;border:1px solid #111;background:#111;color:#fff;border-radius:10px;font-weight:800}
+    button.secondary{background:#fff;color:#111;border-color:#d1d5db}
+    button.danger{background:#b91c1c;border-color:#b91c1c}
+    .small{font-size:12px;color:#6b7280;line-height:1.4}
+    .status{font-size:13px;margin-top:8px}
+    .ok{color:#065f46}
+    .bad{color:#b91c1c}
+    img.preview{max-width:100%;border-radius:12px;border:1px solid #e5e7eb}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .thumbs img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb}
+    table{width:100%;border-collapse:collapse}
+    td,th{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px;vertical-align:top}
+    th{font-size:12px;color:#6b7280;font-weight:800}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:12px}
+    .scoreLine{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Tra giá bằng ảnh (Shape → Color) • Lưu trong iPhone</h1>
+  <div class="tabs">
+    <button class="tab active" id="tabAdd" type="button">➕ Thêm SP</button>
+    <button class="tab" id="tabLookup" type="button">📷 Tra giá</button>
+    <button class="tab" id="tabList" type="button">📚 Danh sách</button>
+  </div>
+</header>
+
+<main>
+  <div class="card small">
+    <div><b>Mẹo để chính xác:</b> Mỗi SKU chụp 2–3 ảnh (nhiều màu, nhiều góc). Khi tra, app ưu tiên <b>hình dáng 70%</b> + <b>màu 30%</b>.</div>
+    <div style="margin-top:6px">Lần đầu mở cần mạng để tải model AI. Sau đó có thể dùng offline (tuỳ iPhone).</div>
+  </div>
+
+  <!-- ADD -->
+  <section id="viewAdd">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>SKU (mã nội bộ)</label>
+          <input id="sku" type="text" placeholder="VD: THUBONG-01" autocomplete="off" />
+        </div>
+        <div>
+          <label>Giá</label>
+          <input id="price" type="number" placeholder="VD: 120000" />
+        </div>
+      </div>
+
+      <label>Tên (tuỳ chọn)</label>
+      <input id="name" type="text" placeholder="VD: Thú bông gấu 30cm" autocomplete="off" />
+
+      <label>Chụp / chọn ảnh (1–3 ảnh cho mỗi lần thêm)</label>
+      <input id="addPhotos" type="file" accept="image/*" capture="environment" multiple />
+      <div class="small">
+        Với thú bông nhiều màu: chụp mỗi màu 1 ảnh. Có thể thêm nhiều lần cho cùng SKU (để tăng ảnh).
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="btnSave" type="button">Lưu / Cập nhật SKU</button>
+        <button id="btnInitModel" class="secondary" type="button">Tải/khởi động AI</button>
+      </div>
+
+      <div id="addThumbPreview" class="thumbs"></div>
+      <div id="addStatus" class="status"></div>
+    </div>
+  </section>
+
+  <!-- LOOKUP -->
+  <section id="viewLookup" style="display:none">
+    <div class="card">
+      <label>Chụp ảnh để tra SKU + giá</label>
+      <input id="lookupPhoto" type="file" accept="image/*" capture="environment" />
+      <div class="small">
+        Nếu sản phẩm giống nhau nhiều, app sẽ trả <b>Top 5</b> để anh chọn đúng nhanh.
+      </div>
+      <div id="lookupStatus" class="status"></div>
+      <div id="lookupPreview" style="margin-top:10px"></div>
+      <div id="lookupResult" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- LIST -->
+  <section id="viewList" style="display:none">
+    <div class="card">
+      <div class="row">
+        <button id="btnExport" class="secondary" type="button">Xuất dữ liệu (backup)</button>
+        <label style="flex:2;min-width:240px">
+          Nhập dữ liệu (restore)
+          <input id="importFile" type="file" accept="application/json" />
+        </label>
+      </div>
+      <div class="small">Nên export định kỳ để khỏi mất dữ liệu khi đổi máy / reset Safari.</div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input id="search" type="text" placeholder="Tìm theo SKU / tên..." />
+        <button id="btnClearAll" class="danger" type="button">Xoá toàn bộ</button>
+      </div>
+      <div id="listStatus" class="status"></div>
+      <div id="listTable"></div>
+    </div>
+  </section>
+</main>
+
+<!-- TFJS + MobileNet -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+
+<script>
+/* =========================
+   CONFIG: weights
+========================= */
+const SHAPE_WEIGHT = 0.70;
+const COLOR_WEIGHT = 0.30;
+const TOP_K = 5;
+const MAX_PHOTOS_PER_ADD = 3; // mỗi lần chọn tối đa 3 ảnh để xử lý nhanh
+
+/* =========================
+   IndexedDB helper
+========================= */
+const DB_NAME = "photo_price_db_v2";
+const DB_STORE = "products";
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(DB_STORE)){
+        const store = db.createObjectStore(DB_STORE, { keyPath: "id" }); // id = p_<sku>
+        store.createIndex("sku", "sku", { unique: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbPut(obj){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(obj);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function dbGet(id){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetAll(){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbDelete(id){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function dbClear(){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).clear();
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* =========================
+   AI: MobileNet embedding
+========================= */
+let model = null;
+
+async function initModel(){
+  if(model) return model;
+  await tf.ready();
+  model = await mobilenet.load({version: 2, alpha: 1.0});
+  // warm-up
+  const dummy = tf.zeros([224,224,3]);
+  model.infer(dummy, true);
+  dummy.dispose();
+  return model;
+}
+
+function fileToImage(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function cosineSim(a, b){
+  let dot = 0, na = 0, nb = 0;
+  for(let i=0;i<a.length;i++){
+    const x = a[i], y = b[i];
+    dot += x*y; na += x*x; nb += y*y;
+  }
+  const denom = (Math.sqrt(na)*Math.sqrt(nb)) || 1e-9;
+  return dot / denom;
+}
+
+async function embedFromImage(img){
+  await initModel();
+  const t = tf.tidy(() => {
+    const c = document.createElement("canvas");
+    c.width = 224; c.height = 224;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(img, 0, 0, 224, 224);
+    const input = tf.browser.fromPixels(c).toFloat().div(255);
+    return model.infer(input, true).flatten();
+  });
+  const arr = await t.data();
+  t.dispose();
+  return new Float32Array(arr);
+}
+
+/* =========================
+   Color: dominant RGB
+   (sample from 64x64, ignore near-white background)
+========================= */
+function getDominantColorFromCanvas(ctx, w, h){
+  const data = ctx.getImageData(0,0,w,h).data;
+  let r=0,g=0,b=0,count=0;
+
+  for(let i=0;i<data.length;i+=4){
+    const rr=data[i], gg=data[i+1], bb=data[i+2], aa=data[i+3];
+    if(aa < 200) continue;
+
+    // bỏ nền trắng/nhạt để màu sản phẩm nổi bật hơn
+    const bright = (rr+gg+bb)/3;
+    if(bright > 245) continue;
+
+    r += rr; g += gg; b += bb; count++;
+  }
+
+  if(count === 0){
+    // fallback: không bỏ nền
+    for(let i=0;i<data.length;i+=4){
+      r += data[i]; g += data[i+1]; b += data[i+2]; count++;
+    }
+  }
+  return [r/count, g/count, b/count];
+}
+
+function getDominantColor(img){
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const W=64,H=64;
+  canvas.width=W; canvas.height=H;
+  ctx.drawImage(img, 0, 0, W, H);
+  return getDominantColorFromCanvas(ctx, W, H);
+}
+
+function colorDistance(c1, c2){
+  const dr = c1[0]-c2[0];
+  const dg = c1[1]-c2[1];
+  const db = c1[2]-c2[2];
+  return Math.sqrt(dr*dr + dg*dg + db*db);
+}
+
+// normalize color score to [0..1]
+function colorScore(queryColor, sampleColor){
+  // max distance in RGB space ~ 441.67
+  const dist = colorDistance(queryColor, sampleColor);
+  const score = 1 - (dist / 441.67295593);
+  return Math.max(0, Math.min(1, score));
+}
+
+/* =========================
+   UI helpers
+========================= */
+const el = (id) => document.getElementById(id);
+
+function setStatus(id, msg, ok=true){
+  const e = el(id);
+  e.className = "status " + (ok ? "ok":"bad");
+  e.textContent = msg;
+}
+
+function setActiveTab(tab){
+  ["tabAdd","tabLookup","tabList"].forEach(t => el(t).classList.toggle("active", t===tab));
+  el("viewAdd").style.display = tab==="tabAdd" ? "" : "none";
+  el("viewLookup").style.display = tab==="tabLookup" ? "" : "none";
+  el("viewList").style.display = tab==="tabList" ? "" : "none";
+}
+
+function formatMoney(n){
+  try { return Number(n).toLocaleString("vi-VN") + " đ"; }
+  catch { return n + " đ"; }
+}
+
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+/* =========================
+   Build thumbnail + store color
+========================= */
+function makeThumbAndColor(img){
+  const c = document.createElement("canvas");
+  const w = 240, h = 240;
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,w,h);
+
+  const r = Math.min(w/img.width, h/img.height);
+  const nw = img.width*r, nh = img.height*r;
+  ctx.drawImage(img, (w-nw)/2, (h-nh)/2, nw, nh);
+
+  // dominant color from the thumbnail canvas (ignore white-ish)
+  const dom = getDominantColorFromCanvas(ctx, w, h);
+  const dataUrl = c.toDataURL("image/jpeg", 0.78);
+  return { dataUrl, dom };
+}
+
+/* =========================
+   Data model:
+   product = {
+     id: "p_<sku>",
+     sku, name, price,
+     photos: [
+       { thumb: "data:image/jpeg...", vec: number[], color: [r,g,b], updatedAt }
+     ],
+     updatedAt
+   }
+========================= */
+
+/* =========================
+   Add / Update SKU with photos
+========================= */
+async function saveOrUpdateProduct(){
+  const sku = el("sku").value.trim();
+  const price = Number(el("price").value);
+  const name = el("name").value.trim();
+  const files = el("addPhotos").files;
+
+  if(!sku) return setStatus("addStatus","Vui lòng nhập SKU.", false);
+  if(!price || price < 0) return setStatus("addStatus","Vui lòng nhập giá hợp lệ.", false);
+  if(!files || files.length===0) return setStatus("addStatus","Vui lòng chụp/chọn ít nhất 1 ảnh.", false);
+
+  setStatus("addStatus","Đang xử lý ảnh (shape + màu) và lưu…", true);
+  el("addThumbPreview").innerHTML = "";
+
+  try{
+    await initModel();
+
+    const id = "p_" + sku;
+    const existing = await dbGet(id);
+
+    const product = existing || {
+      id, sku,
+      name: "",
+      price: 0,
+      photos: [],
+      updatedAt: 0
+    };
+
+    // update base fields
+    product.price = price;
+    product.name = name || product.name || "";
+
+    const maxPhotos = Math.min(files.length, MAX_PHOTOS_PER_ADD);
+
+    for(let i=0;i<maxPhotos;i++){
+      const f = files[i];
+      const img = await fileToImage(f);
+
+      // preview thumbnails on screen
+      const { dataUrl, dom } = makeThumbAndColor(img);
+      el("addThumbPreview").insertAdjacentHTML("beforeend", `<img src="${dataUrl}" alt="thumb">`);
+
+      const vec = await embedFromImage(img);
+
+      product.photos.push({
+        thumb: dataUrl,
+        color: dom,                 // [r,g,b]
+        vec: Array.from(vec),       // embedding
+        updatedAt: Date.now()
+      });
+
+      URL.revokeObjectURL(img.src);
+    }
+
+    product.updatedAt = Date.now();
+    await dbPut(product);
+
+    // reset inputs
+    el("sku").value = "";
+    el("price").value = "";
+    el("name").value = "";
+    el("addPhotos").value = "";
+
+    setStatus("addStatus",`Đã lưu/cập nhật SKU: ${product.sku}. Tổng ảnh của SKU: ${product.photos.length}.`, true);
+    await renderList();
+  }catch(err){
+    console.error(err);
+    setStatus("addStatus","Lỗi khi lưu. Hãy thử lại (kiểm tra HTTPS/mạng lần đầu tải AI).", false);
+  }
+}
+
+/* =========================
+   Lookup: Shape first -> Color after
+========================= */
+async function lookupByPhoto(file){
+  if(!file) return;
+
+  setStatus("lookupStatus","Đang phân tích ảnh…", true);
+  el("lookupResult").innerHTML = "";
+  el("lookupPreview").innerHTML = "";
+
+  try{
+    const img = await fileToImage(file);
+    el("lookupPreview").innerHTML = `<img class="preview" alt="preview" src="${img.src}">`;
+
+    await initModel();
+    const qVec = await embedFromImage(img);
+    const qColor = getDominantColor(img);
+
+    const products = await dbGetAll();
+    if(products.length === 0){
+      setStatus("lookupStatus","Chưa có dữ liệu. Hãy thêm sản phẩm trước.", false);
+      return;
+    }
+
+    // Score each product by best photo match
+    const scored = products.map(p => {
+      let bestFinal = -1;
+      let bestShape = -1;
+      let bestColor = -1;
+      let bestThumb = p.photos?.[0]?.thumb || "";
+      let bestPhotoIndex = 0;
+
+      const photos = p.photos || [];
+      for(let i=0;i<photos.length;i++){
+        const ph = photos[i];
+        const shape = cosineSim(qVec, new Float32Array(ph.vec));
+        const cscore = colorScore(qColor, ph.color);
+
+        const finalScore = (shape * SHAPE_WEIGHT) + (cscore * COLOR_WEIGHT);
+
+        if(finalScore > bestFinal){
+          bestFinal = finalScore;
+          bestShape = shape;
+          bestColor = cscore;
+          bestThumb = ph.thumb || bestThumb;
+          bestPhotoIndex = i;
+        }
+      }
+
+      return {
+        p,
+        score: bestFinal,
+        shape: bestShape,
+        color: bestColor,
+        bestThumb,
+        bestPhotoIndex
+      };
+    }).sort((a,b)=>b.score-a.score);
+
+    const top = scored.slice(0, TOP_K);
+
+    const bestPct = (top[0].score*100).toFixed(1);
+    setStatus("lookupStatus",`Xong ✅ • Độ khớp cao nhất: ${bestPct}%`, true);
+
+    const rows = top.map(({p, score, shape, color, bestThumb}) => `
+      <tr>
+        <td>${bestThumb ? `<img src="${bestThumb}" style="width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb">` : ""}</td>
+        <td>
+          <b>${p.sku}</b>
+          <div class="small">${p.name || ""}</div>
+        </td>
+        <td><b>${formatMoney(p.price)}</b></td>
+        <td>
+          <div class="scoreLine">
+            <span class="pill">Tổng ${(score*100).toFixed(1)}%</span>
+            <span class="pill">Hình ${(shape*100).toFixed(1)}%</span>
+            <span class="pill">Màu ${(color*100).toFixed(1)}%</span>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    el("lookupResult").innerHTML = `
+      <div class="card" style="border:none;padding:0;margin:0">
+        <table>
+          <thead>
+            <tr>
+              <th>Ảnh khớp</th><th>Sản phẩm</th><th>Giá</th><th>Điểm</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="small" style="margin-top:8px">
+          Nếu hay nhầm màu: hãy vào <b>Thêm SP</b> → nhập đúng SKU → chụp thêm ảnh màu đó (app sẽ cộng thêm ảnh cho SKU).
+        </div>
+      </div>
+    `;
+
+    URL.revokeObjectURL(img.src);
+  }catch(err){
+    console.error(err);
+    setStatus("lookupStatus","Lỗi tra cứu. Thử chụp rõ hơn/đủ sáng nhé.", false);
+  }
+}
+
+/* =========================
+   List + export/import
+========================= */
+async function renderList(){
+  const q = el("search")?.value?.trim().toLowerCase() || "";
+  const items = (await dbGetAll())
+    .sort((a,b) => (b.updatedAt||0)-(a.updatedAt||0))
+    .filter(p => !q || (p.sku||"").toLowerCase().includes(q) || (p.name||"").toLowerCase().includes(q));
+
+  if(el("listStatus")) el("listStatus").textContent = `Tổng: ${items.length} SKU.`;
+  if(!el("listTable")) return;
+
+  if(items.length===0){
+    el("listTable").innerHTML = `<div class="small">Chưa có sản phẩm nào.</div>`;
+    return;
+  }
+
+  el("listTable").innerHTML = `
+    <table>
+      <thead>
+        <tr><th>Ảnh</th><th>SKU</th><th>Tên</th><th>Giá</th><th>Ảnh/SKU</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${items.map(p => {
+          const thumb = p.photos?.[0]?.thumb || "";
+          const n = (p.photos||[]).length;
+          return `
+            <tr>
+              <td>${thumb ? `<img src="${thumb}" style="width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb">` : ""}</td>
+              <td><b>${p.sku}</b></td>
+              <td>${p.name || ""}</td>
+              <td><b>${formatMoney(p.price)}</b></td>
+              <td><span class="pill">${n}</span></td>
+              <td><button class="secondary" type="button" onclick="window.__del('${p.id}')">Xoá</button></td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+window.__del = async (id) => {
+  if(!confirm("Xoá SKU này (và toàn bộ ảnh đã lưu)?")) return;
+  await dbDelete(id);
+  await renderList();
+};
+
+async function exportData(){
+  const items = await dbGetAll();
+  const blob = new Blob([JSON.stringify({version:2, exportedAt:Date.now(), items}, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `backup-tra-gia-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file){
+  if(!file) return;
+  const text = await file.text();
+  const data = JSON.parse(text);
+  const items = data.items || [];
+  for(const it of items){
+    // sanitize basic
+    if(it && it.id && it.sku && typeof it.price === "number" && Array.isArray(it.photos)){
+      // ensure photos fields exist
+      it.photos = it.photos
+        .filter(ph => ph && Array.isArray(ph.vec) && Array.isArray(ph.color) && typeof ph.thumb === "string")
+        .map(ph => ({
+          thumb: ph.thumb,
+          vec: ph.vec,
+          color: ph.color,
+          updatedAt: ph.updatedAt || Date.now()
+        }));
+      it.updatedAt = it.updatedAt || Date.now();
+      await dbPut(it);
+    }
+  }
+  await renderList();
+  alert("Đã nhập xong dữ liệu.");
+}
+
+/* =========================
+   Tabs + events
+========================= */
+el("tabAdd").onclick = () => setActiveTab("tabAdd");
+el("tabLookup").onclick = () => setActiveTab("tabLookup");
+el("tabList").onclick = () => { setActiveTab("tabList"); renderList(); };
+
+el("btnInitModel").onclick = async () => {
+  setStatus("addStatus","Đang tải/khởi động AI…", true);
+  try{ await initModel(); setStatus("addStatus","AI sẵn sàng ✅", true); }
+  catch(e){ console.error(e); setStatus("addStatus","Không tải được AI. Kiểm tra mạng/HTTPS.", false); }
+};
+
+el("btnSave").onclick = saveOrUpdateProduct;
+
+el("lookupPhoto").addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if(file) lookupByPhoto(file);
+});
+
+el("btnExport").onclick = exportData;
+el("importFile").addEventListener("change", (e) => importData(e.target.files?.[0]));
+el("search").addEventListener("input", renderList);
+
+el("btnClearAll").onclick = async () => {
+  if(!confirm("Xoá toàn bộ dữ liệu trong app?")) return;
+  await dbClear();
+  await renderList();
+};
+
+/* =========================
+   Service Worker
+========================= */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
+  });
+}
+
+// initial
+renderList();
+</script>
+</body>
+</html>
